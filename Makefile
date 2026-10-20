@@ -1,6 +1,11 @@
 NOTEBOOKS := $(wildcard notebooks/*.py)
 RENDERED := $(patsubst notebooks/%.py,rendered/%.ipynb,$(NOTEBOOKS))
 
+# Seconds any one cell may run when notebooks are executed. Every cell takes well under a
+# second; this turns an occasional lost kernel message, which otherwise waits forever, into
+# an error that names the cell.
+CELL_TIMEOUT := 120
+
 .PHONY: sync lab lab-settings render test test-package test-notebooks lint clean
 
 sync:
@@ -21,7 +26,8 @@ render: $(RENDERED)
 
 rendered/%.ipynb: notebooks/%.py $(wildcard src/nnls_tutorial/*.py)
 	uv run jupytext --to ipynb --output $@ $<
-	uv run jupyter nbconvert --to notebook --execute --inplace $@
+	uv run jupyter nbconvert --to notebook --execute --inplace \
+		--ExecutePreprocessor.timeout=$(CELL_TIMEOUT) $@
 
 test: test-package test-notebooks
 
@@ -30,7 +36,7 @@ test-package:
 
 # executes the rendered notebooks top to bottom
 test-notebooks: render
-	uv run pytest --nbmake rendered/
+	uv run pytest --nbmake --nbmake-timeout=$(CELL_TIMEOUT) rendered/
 
 lint:
 	uv run ruff check src tests notebooks
