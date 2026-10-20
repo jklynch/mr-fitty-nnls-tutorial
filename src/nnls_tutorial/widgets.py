@@ -256,7 +256,7 @@ def projection3d_figure(s1=0.9, s2=0.6, s3=0.9, elev=20, azim=-62, show_cone=Tru
     origin = np.zeros(3)
     for i in range(2):
         P.arrow3d(ax, origin, R[:, i], P.COLUMN_COLORS[i], P.column_label(i))
-    P.arrow3d(ax, origin, s, P.INK, "$s$")
+    P.arrow3d(ax, origin, s, P.INK, "$s$", head=False)  # s keeps its dot
     # snap=False: pixel snapping would shift this vertical line off the markers it joins
     (drop,) = ax.plot(*zip(s, p, strict=True), color=P.LS_COLOR, ls="--", lw=1.6, snap=False)
     # a hollow square, so p stays distinct from the NNLS dot q, even where they coincide

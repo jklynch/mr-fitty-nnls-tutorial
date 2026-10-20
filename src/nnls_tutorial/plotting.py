@@ -9,6 +9,8 @@ so color never carries the distinction alone.
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import proj3d
 
 # The categorical slots, in their validated order. Columns take them first to last.
 COLUMN_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]
@@ -94,11 +96,43 @@ def arrow(ax, start, end, color, label=None, width=0.012, **kwargs):
         )
 
 
-def arrow3d(ax, start, end, color, label=None, label_offset=0.08, **kwargs):
-    """A vector drawn as a line with a cone-free arrowhead marker on a 3D axes."""
+class Arrow3D(FancyArrowPatch):
+    """A 2D arrow whose ends are re-projected from 3D each time the axes are drawn.
+
+    Matplotlib's 3D axes have no arrow of their own. This one draws the same arrowhead as the
+    2D figures, and turning the view moves it with the rest of the plot.
+    """
+
+    def __init__(self, start, end, **kwargs):
+        super().__init__((0, 0), (0, 0), **kwargs)
+        self._start, self._end = start, end
+
+    def do_3d_projection(self, renderer=None):
+        xs, ys, zs = proj3d.proj_transform(*zip(self._start, self._end, strict=True), self.axes.M)
+        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+        return min(zs)  # depth, for drawing order
+
+
+def arrow3d(ax, start, end, color, label=None, label_offset=0.08, head=True):
+    """A vector on a 3D axes: an arrow from start to end, or with head=False a line ending in
+    a dot, for a vector that is better read as a point."""
     start, end = np.asarray(start, float), np.asarray(end, float)
-    ax.plot(*zip(start, end, strict=True), color=color, lw=2.2, **kwargs)
-    ax.scatter(*end, color=color, s=28, depthshade=False)
+    if head:
+        ax.add_patch(
+            Arrow3D(
+                start,
+                end,
+                arrowstyle="-|>",
+                mutation_scale=16,
+                color=color,
+                lw=2.2,
+                shrinkA=0,
+                shrinkB=0,
+            )
+        )
+    else:
+        ax.plot(*zip(start, end, strict=True), color=color, lw=2.2)
+        ax.scatter(*end, color=color, s=28, depthshade=False)
     if label is not None:
         tip = end + label_offset * (end - start) / max(np.linalg.norm(end - start), 1e-12)
         ax.text(*tip, label, color=INK, fontsize=13)
