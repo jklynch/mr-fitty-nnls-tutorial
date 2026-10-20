@@ -257,10 +257,21 @@ def projection3d_figure(s1=0.9, s2=0.6, s3=0.9, elev=20, azim=-62, show_cone=Tru
     for i in range(2):
         P.arrow3d(ax, origin, R[:, i], P.COLUMN_COLORS[i], P.column_label(i))
     P.arrow3d(ax, origin, s, P.INK, "$s$")
-    ax.plot(*zip(s, p, strict=True), color=P.LS_COLOR, ls="--", lw=1.6)
-    ax.scatter(
-        *p, color=P.LS_COLOR, marker="s", s=50, facecolors="none", linewidths=2, depthshade=False
-    )
+    # snap=False: pixel snapping would shift this vertical line off the dots it joins
+    (drop,) = ax.plot(*zip(s, p, strict=True), color=P.LS_COLOR, ls="--", lw=1.6, snap=False)
+    if show_cone:
+        # a hollow square, so p stays distinct from the NNLS dot q, even where they coincide
+        ax.scatter(
+            *p,
+            color=P.LS_COLOR,
+            marker="s",
+            s=50,
+            facecolors="none",
+            linewidths=2,
+            depthshade=False,
+        )
+    else:
+        ax.scatter(*p, color=P.LS_COLOR, s=28, depthshade=False)  # alone: a dot like the others
     same = show_cone and np.allclose(p, q)  # s is over the wedge: one point, one label
     p_label = "$p = q$" if same else "$p = Rw$"
     ax.text(*_beyond(p), p_label, color=P.INK, fontsize=12, ha="center", va="center")
@@ -311,7 +322,29 @@ def projection3d_figure(s1=0.9, s2=0.6, s3=0.9, elev=20, azim=-62, show_cone=Tru
             fontsize=10,
             bbox=dict(facecolor=P.SURFACE, edgecolor=P.GRID),
         )
+    _fit_dashes(ax, s, p, drop)
     return fig
+
+
+def _fit_dashes(ax, start, end, line, dash=3.2, gap=1.6):
+    """Stretch a dashed line's pattern so it begins and ends with a dash, touching both ends.
+
+    A dash pattern otherwise stops wherever it happens to run out, often in a gap, leaving the
+    line short of its end point. The pattern is in units of the line width, and the line's
+    length on screen depends on the view, so it's measured after the figure is laid out.
+    """
+    from mpl_toolkits.mplot3d import proj3d
+
+    fig = ax.figure
+    fig.canvas.draw()
+    ends = [
+        ax.transData.transform(proj3d.proj_transform(*pt, ax.get_proj())[:2]) for pt in (start, end)
+    ]
+    length = np.hypot(*(ends[1] - ends[0])) * 72 / fig.dpi / line.get_linewidth()
+    # n dashes and n - 1 gaps, scaled together to fill the length exactly
+    n = max(1, round((length + gap) / (dash + gap)))
+    scale = length / (n * dash + (n - 1) * gap)
+    line.set_dashes([dash * scale, gap * scale] if n > 1 else [length, 0.0])
 
 
 def _beyond(point, gap=0.4):
