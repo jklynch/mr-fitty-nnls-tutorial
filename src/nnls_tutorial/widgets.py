@@ -257,21 +257,12 @@ def projection3d_figure(s1=0.9, s2=0.6, s3=0.9, elev=20, azim=-62, show_cone=Tru
     for i in range(2):
         P.arrow3d(ax, origin, R[:, i], P.COLUMN_COLORS[i], P.column_label(i))
     P.arrow3d(ax, origin, s, P.INK, "$s$")
-    # snap=False: pixel snapping would shift this vertical line off the dots it joins
+    # snap=False: pixel snapping would shift this vertical line off the markers it joins
     (drop,) = ax.plot(*zip(s, p, strict=True), color=P.LS_COLOR, ls="--", lw=1.6, snap=False)
-    if show_cone:
-        # a hollow square, so p stays distinct from the NNLS dot q, even where they coincide
-        ax.scatter(
-            *p,
-            color=P.LS_COLOR,
-            marker="s",
-            s=50,
-            facecolors="none",
-            linewidths=2,
-            depthshade=False,
-        )
-    else:
-        ax.scatter(*p, color=P.LS_COLOR, s=28, depthshade=False)  # alone: a dot like the others
+    # a hollow square, so p stays distinct from the NNLS dot q, even where they coincide
+    ax.scatter(
+        *p, color=P.LS_COLOR, marker="s", s=50, facecolors="none", linewidths=2, depthshade=False
+    )
     same = show_cone and np.allclose(p, q)  # s is over the wedge: one point, one label
     p_label = "$p = q$" if same else "$p = Rw$"
     ax.text(*_beyond(p), p_label, color=P.INK, fontsize=12, ha="center", va="center")
