@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# a newer push to the same branch or pull request cancels the run in progress
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # installs the Python in .python-version and caches uv's downloads between runs
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Lint
+        run: make lint
+
+      - name: Package tests
+        run: make test-package
+
+      # -B renders every notebook from its .py source, so a stale rendered/ copy can't hide a
+      # broken notebook. The runner compiles the Numba kernels from scratch and has fewer
+      # cores than a workstation, so cells get more than the local 10 s.
+      - name: Execute the notebooks
+        run: make -B test-notebooks CELL_TIMEOUT=60

@@ -1,5 +1,7 @@
 # How non-negative least squares works
 
+[![CI](https://github.com/jklynch/mr-fitty-nnls-tutorial/actions/workflows/ci.yml/badge.svg)](https://github.com/jklynch/mr-fitty-nnls-tutorial/actions/workflows/ci.yml)
+
 A tutorial, in Jupyter notebooks, on non-negative least squares (NNLS): find the weights
 $w \ge 0$ that make $Rw$ as close as possible to $s$. It is written for undergraduate math
 majors who have taken a first course in linear algebra, and it is motivated by a real problem:
@@ -36,6 +38,10 @@ make render       # rebuild rendered/*.ipynb from notebooks/*.py
 make lint
 uv run pre-commit install
 ```
+
+GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `make lint`,
+`make test-package`, and every notebook rendered and executed from its `.py` source, on each
+push to `main` and each pull request.
 
 ### The tests
 
