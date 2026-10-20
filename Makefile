@@ -6,6 +6,13 @@ RENDERED := $(patsubst notebooks/%.py,rendered/%.ipynb,$(NOTEBOOKS))
 # an error that names the cell.
 CELL_TIMEOUT := 10
 
+# Talk to kernels over Unix sockets, not unencrypted TCP. With IPC, Jupyter treats `ip` as a
+# socket path; it must be absolute, because the kernel starts in a different directory from the
+# process that connects to it. The sockets go in Jupyter's runtime directory, which is private
+# to you, and which a fresh machine (such as a CI runner) doesn't have yet.
+JUPYTER_RUNTIME = $(shell d="$$(uv run jupyter --runtime-dir)" && mkdir -p -m 700 "$$d" && echo "$$d")
+KERNEL_IPC = --KernelManager.transport=ipc --KernelManager.ip=$(JUPYTER_RUNTIME)/kernel
+
 .PHONY: sync lab lab-stop lab-settings render test test-package test-notebooks lint clean
 
 sync:
@@ -23,7 +30,7 @@ lab: lab-settings
 		echo "JupyterLab is already running (pid $$(cat $(LAB_PID))); see $(LAB_LOG)"; \
 		exit 0; \
 	fi; \
-	nohup uv run jupyter lab notebooks > $(LAB_LOG) 2>&1 & echo $$! > $(LAB_PID); \
+	nohup uv run jupyter lab notebooks $(KERNEL_IPC) > $(LAB_LOG) 2>&1 & echo $$! > $(LAB_PID); \
 	for i in $$(seq 30); do \
 		url=$$(grep -o 'http://127\.0\.0\.1:[0-9]*/lab?token=[0-9a-f]*' $(LAB_LOG) | head -1); \
 		if [ -n "$$url" ]; then echo "JupyterLab: $$url"; exit 0; fi; \
@@ -49,7 +56,7 @@ render: $(RENDERED)
 
 rendered/%.ipynb: notebooks/%.py $(wildcard src/nnls_tutorial/*.py)
 	uv run jupytext --to ipynb --output $@ $<
-	uv run jupyter nbconvert --to notebook --execute --inplace \
+	uv run jupyter nbconvert --to notebook --execute --inplace $(KERNEL_IPC) \
 		--ExecutePreprocessor.timeout=$(CELL_TIMEOUT) $@
 
 test: test-package test-notebooks
