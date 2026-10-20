@@ -4,7 +4,7 @@ RENDERED := $(patsubst notebooks/%.py,rendered/%.ipynb,$(NOTEBOOKS))
 # Seconds any one cell may run when notebooks are executed. Every cell takes well under a
 # second; this turns an occasional lost kernel message, which otherwise waits forever, into
 # an error that names the cell.
-CELL_TIMEOUT := 120
+CELL_TIMEOUT := 30
 
 .PHONY: sync lab lab-settings render test test-package test-notebooks lint clean
 
