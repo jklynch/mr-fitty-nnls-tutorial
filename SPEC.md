@@ -100,6 +100,8 @@ src/nnls_tutorial/
   weight_space.py    notebook 2's figures (weight space): widgets + *_static fallbacks
   active_set_walk.py notebook 3's figures (the walk in both spaces, costs): widgets + *_static
   numerics.py        notebook 4's figures (stretching, digits lost, Cholesky order, supports)
+  batched.py         holdout masks; the SciPy loop, batched NumPy and Numba versions; searches
+  many_fits.py       notebook 5's figures (draws, timings, agreement); measurements, no widgets
 ```
 
 ## 6. Data
