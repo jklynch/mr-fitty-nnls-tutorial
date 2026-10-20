@@ -37,4 +37,39 @@ make lint
 uv run pre-commit install
 ```
 
+### The tests
+
+`make test` runs two kinds of test. The package tests in `tests/` check the code in
+`src/nnls_tutorial/` and run in under a second. Executing every notebook covers the plotting and
+widget modules, which have no unit tests of their own.
+
+The package tests fall into four groups:
+
+1. **Solvers give the right answer** (`test_solvers.py`).
+   - Each of the three NNLS solvers (enumeration, enumeration through $G$ and $c$, and the active
+     set) is compared with `scipy.optimize.nnls` on 50 random problems. Each answer is also
+     checked against the KKT conditions, which prove it correct without trusting SciPy.
+   - All three are tested on a matrix with a duplicate column, where only the fit is unique.
+   - On the bundled spectra, enumeration reproduces MrFitty's published best fit, and the active
+     set matches enumeration on all ten references.
+   - `nnls_enumerate_many` matches enumerating one target at a time.
+2. **The building blocks** (`test_solvers.py`): `supports`, `candidates` with dependent supports,
+   `support_fit`, the quadratic expansion of $f$ (which checks the gradient too), Cholesky, the
+   triangular solves, the least-squares routes, and the cone-projection identity from
+   `geometry.py`.
+3. **The theorems, checked numerically.**
+   - The active-set walk goes downhill and never repeats a support (Theorems 14 and 15).
+   - Notebook 4's results (`test_conditioning.py`): $\kappa(R^\top R) = \kappa(R)^2$, the trace
+     bound, no support worse conditioned than the whole, $\kappa = \cot(\theta/2)$ for a unit
+     pair, and the normal equations losing about twice QR's digits.
+4. **The fast versions agree with the reference** (`test_batched.py`).
+   - The batched and compiled solvers match one SciPy call per fit on 40 random problems with
+     holdouts.
+   - The two Gram-matrix routes agree, and batched Cholesky matches NumPy.
+   - The two condition checks bracket each other, and draws that fail the check go to SciPy.
+   - The compiled search matches the SciPy search on the bundled spectra.
+
+Tests over many random problems loop over their seeds inside one test, and a failure names the
+seed. The random problems come from `tests/problems.py`.
+
 See [SPEC.md](SPEC.md) for the plan of the whole series.
