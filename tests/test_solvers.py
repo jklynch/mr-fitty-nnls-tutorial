@@ -8,9 +8,13 @@ from nnls_tutorial.data import load_arsenic
 from nnls_tutorial.geometry import project_onto_cone, project_onto_span
 from nnls_tutorial.solvers import (
     candidates,
+    gradient,
     lstsq,
     nnls_enumerate,
     nnls_enumerate_many,
+    normal_equations,
+    objective,
+    support_fit,
     support_of,
     supports,
 )
@@ -103,3 +107,43 @@ def test_bundled_best_fit_matches_mrfitty():
     spectra = load_arsenic(names)
     w = nnls_enumerate(spectra.R, spectra.s)
     np.testing.assert_allclose(w, [0.519737, 0.395842, 0.0856152], atol=1e-5)
+
+
+def test_gradient_matches_finite_differences():
+    R, s = random_problem(np.random.default_rng(4), m=3)
+    w = np.random.default_rng(5).normal(size=3)
+    h = 1e-6
+    numeric = [
+        (objective(R, s, w + h * np.eye(3)[i]) - objective(R, s, w - h * np.eye(3)[i])) / (2 * h)
+        for i in range(3)
+    ]
+    np.testing.assert_allclose(gradient(R, s, w), numeric, rtol=1e-6)
+
+
+def test_quadratic_expansion_is_exact():
+    # f(w + t d) = f(w) + t grad f(w) . d + t^2 ||R d||^2, with no remainder
+    rng = np.random.default_rng(6)
+    R, s = random_problem(rng, m=4)
+    w, d, t = rng.normal(size=4), rng.normal(size=4), 0.7
+    expanded = objective(R, s, w) + t * gradient(R, s, w) @ d + t**2 * np.sum((R @ d) ** 2)
+    assert np.isclose(objective(R, s, w + t * d), expanded)
+
+
+def test_support_fit_matches_direct_least_squares():
+    R, s = random_problem(np.random.default_rng(7), m=4)
+    G, c, ss = normal_equations(R, s)
+    for cand in candidates(R, s)[1:]:
+        z, error = support_fit(G, c, ss, cand.support)
+        np.testing.assert_allclose(z, cand.w[list(cand.support)], atol=1e-10)
+        assert np.isclose(error, cand.error, atol=1e-10)
+
+
+@pytest.mark.parametrize("seed", range(50))
+def test_enumerate_satisfies_kkt(seed):
+    # lambda = grad f(w*) >= 0, and lambda_i = 0 wherever w*_i > 0
+    R, s = random_problem(np.random.default_rng(100 + seed))
+    w = nnls_enumerate(R, s)
+    lam = gradient(R, s, w)
+    scale = np.abs(R.T @ s).max() + 1
+    assert np.all(lam >= -1e-9 * scale)
+    assert np.all(np.abs(lam[w > 0]) <= 1e-9 * scale)

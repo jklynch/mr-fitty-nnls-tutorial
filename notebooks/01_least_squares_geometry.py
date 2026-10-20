@@ -48,7 +48,7 @@
 import numpy as np
 
 from nnls_tutorial import plotting as P
-from nnls_tutorial import widgets as W
+from nnls_tutorial import spectrum_space as S
 from nnls_tutorial.data import load_arsenic
 from nnls_tutorial.solvers import lstsq, nnls_enumerate, support_of
 
@@ -98,7 +98,7 @@ BEST_FIT = [
 # Here's a real one: a measured spectrum from a soil sample, with three candidate references.
 
 # %%
-P.show(W.teaser_figure(spectra, TEASER))
+P.show(S.teaser_figure(spectra, TEASER))
 
 # %% [markdown]
 # **Figure 1.1.** Left: three reference spectra $r_1, r_2, r_3$ and the measured spectrum $s$
@@ -158,7 +158,7 @@ print(
 # measured at just two energies and axes $f_1$ and $f_2$.
 
 # %%
-P.show(W.projection3d_figure(0.9, 0.6, 0.9, show_cone=False))
+P.show(S.projection3d_figure(0.9, 0.6, 0.9, show_cone=False))
 
 # %% [markdown]
 # **Figure 1.2.** Least squares in $\mathbb{R}^3$. The gray plane is $\operatorname{col}(R)$,
@@ -232,7 +232,7 @@ print("largest entry of R^T ê:", f"{np.abs(R.T @ e_hat).max():.1e}", " <- zero,
 
 # %%
 # Snapshots for reading without a kernel. Below them is a widget for moving s yourself.
-W.projection3d_static()
+S.projection3d_static()
 
 # %% [markdown]
 # **Figure 1.3.** Least squares and NNLS for two positions of $s$. In each row the left panel is
@@ -243,7 +243,7 @@ W.projection3d_static()
 # widget below draws the same figure for any $s$ and viewing angle.
 
 # %%
-W.projection3d_widget()
+S.projection3d_widget()
 
 # %% [markdown]
 # In the top row of Figure 1.3, $s$ hovers over the wedge. Its shadow $p$ lands inside the wedge, so
@@ -279,7 +279,7 @@ W.projection3d_widget()
 # right test is a little looser, as Figure 1.4 shows:
 
 # %%
-P.show(W.obtuse_angle_figure())
+P.show(S.obtuse_angle_figure())
 
 # %% [markdown]
 # **Figure 1.4.** The obtuse-angle test. Left: standing at the closest point $q$, every point of
@@ -414,7 +414,7 @@ print("switched on:", [spectra.labels[teaser_columns[i]] for i in support_of(w_s
 # Figure 1.5 shows exactly these four regions.
 
 # %%
-W.regions_static()
+S.regions_static()
 
 # %% [markdown]
 # **Figure 1.5.** Every point of the plane, colored by which columns its NNLS fit switches on,
@@ -423,7 +423,7 @@ W.regions_static()
 # below lets you move $s$ and change the angle between the columns.
 
 # %%
-W.regions_widget()
+S.regions_widget()
 
 # %% [markdown]
 # Use the widget to play with the angle between the columns. The four regions always tile the plane, and their
@@ -471,7 +471,7 @@ print("least squares using only those columns: ", lstsq(R[:, on], s))
 # which uses a different trio of references.
 
 # %%
-W.mixtures_static(spectra, [TEASER, BEST_FIT])
+S.mixtures_static(spectra, [TEASER, BEST_FIT])
 
 # %% [markdown]
 # **Figure 1.6.** Two three-reference fits of the measured spectrum. Left: the least-squares
@@ -494,7 +494,7 @@ W.mixtures_static(spectra, [TEASER, BEST_FIT])
 # Try other trios. The widget lets you pick any three of the ten bundled references:
 
 # %%
-W.mixtures_widget(spectra)
+S.mixtures_widget(spectra)
 
 # %% [markdown]
 # One trio to try: **As$_2$O$_3$** with **sodium arsenite** and anything else. Those two
