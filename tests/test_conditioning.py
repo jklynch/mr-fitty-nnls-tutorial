@@ -1,7 +1,6 @@
 """The conditioning facts notebook 4 proves, checked numerically."""
 
 import numpy as np
-import pytest
 
 from nnls_tutorial.conditioning import (
     cond,
@@ -13,21 +12,23 @@ from nnls_tutorial.conditioning import (
 )
 
 
-@pytest.mark.parametrize("seed", range(20))
-def test_gram_matrix_squares_the_condition_number(seed):
+def test_gram_matrix_squares_the_condition_number():
     # Theorem 18
-    R = np.random.default_rng(seed).random((30, 4))
-    assert np.isclose(cond(R.T @ R), cond_columns(R) ** 2, rtol=1e-8)
+    for seed in range(20):
+        R = np.random.default_rng(seed).random((30, 4))
+        assert np.isclose(cond(R.T @ R), cond_columns(R) ** 2, rtol=1e-8), f"seed {seed}"
 
 
-@pytest.mark.parametrize("seed", range(20))
-def test_trace_bound_brackets_the_condition_number(seed):
+def test_trace_bound_brackets_the_condition_number():
     # Theorem 22
-    R = np.random.default_rng(seed).random((30, 5))
-    G = R.T @ R
-    bound = trace_bound(G)
-    assert np.isclose(bound, np.trace(G) * np.trace(np.linalg.inv(G)), rtol=1e-8)
-    assert cond(G) <= bound * (1 + 1e-10) and bound <= 25 * cond(G) * (1 + 1e-10)
+    for seed in range(20):
+        R = np.random.default_rng(seed).random((30, 5))
+        G = R.T @ R
+        bound = trace_bound(G)
+        message = f"seed {seed}"
+        assert np.isclose(bound, np.trace(G) * np.trace(np.linalg.inv(G)), rtol=1e-8), message
+        assert cond(G) <= bound * (1 + 1e-10), message
+        assert bound <= 25 * cond(G) * (1 + 1e-10), message
 
 
 def test_no_support_is_worse_conditioned_than_the_whole():

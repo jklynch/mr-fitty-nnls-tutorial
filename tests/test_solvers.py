@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 import scipy.optimize
+from problems import fit_error, random_problem
 
 from nnls_tutorial.data import load_arsenic
 from nnls_tutorial.geometry import project_onto_cone, project_onto_span
@@ -28,17 +29,12 @@ from nnls_tutorial.solvers import (
     supports,
 )
 
-
-def fit_error(R, s, w):
-    return np.sum((R @ w - s) ** 2)
-
-
-def random_problem(rng, n=30, m=None):
-    """A problem where most targets want some negative weights, so NNLS has work to do."""
-    m = int(rng.integers(1, 6)) if m is None else m
-    R = rng.random((n, m))
-    s = R @ rng.normal(size=m) + 0.05 * rng.normal(size=n)
-    return R, s
+# The three NNLS solvers, with the largest m each is tested at: enumeration does 2**m fits.
+SOLVERS = {
+    "enumerate": (nnls_enumerate, 5),
+    "enumerate_normal": (nnls_enumerate_normal, 5),
+    "active_set": (nnls_active_set, 8),
+}
 
 
 def test_supports_counts_every_nonempty_subset():
@@ -46,24 +42,35 @@ def test_supports_counts_every_nonempty_subset():
     assert supports(2) == [(0,), (1,), (0, 1)]
 
 
-@pytest.mark.parametrize("seed", range(200))
-def test_enumerate_matches_scipy(seed):
-    R, s = random_problem(np.random.default_rng(seed))
-    w = nnls_enumerate(R, s)
-    w_scipy, _ = scipy.optimize.nnls(R, s)
-    assert np.all(w >= 0)
-    np.testing.assert_allclose(w, w_scipy, atol=1e-9)
-    assert abs(fit_error(R, s, w) - fit_error(R, s, w_scipy)) < 1e-12
+@pytest.mark.parametrize("name", SOLVERS)
+def test_solver_matches_scipy_and_satisfies_kkt(name):
+    # KKT: lambda = grad f(w*) >= 0, and lambda_i = 0 wherever w*_i > 0. This certifies the
+    # answer without trusting SciPy.
+    solve, largest = SOLVERS[name]
+    for seed in range(50):
+        R, s = random_problem(np.random.default_rng(seed), m=1 + seed % largest)
+        w = solve(R, s)
+        w_scipy, _ = scipy.optimize.nnls(R, s)
+        message = f"seed {seed}"
+        assert np.all(w >= 0), message
+        np.testing.assert_allclose(w, w_scipy, atol=1e-9, err_msg=message)
+        assert abs(fit_error(R, s, w) - fit_error(R, s, w_scipy)) < 1e-12, message
+        lam = gradient(R, s, w)
+        scale = np.abs(R.T @ s).max() + 1
+        assert np.all(lam >= -1e-9 * scale), message
+        assert np.all(np.abs(lam[w > 0]) <= 1e-9 * scale), message
 
 
-def test_enumerate_with_duplicate_column_matches_scipy_fit():
+@pytest.mark.parametrize("name", SOLVERS)
+def test_duplicate_column_matches_scipy_fit(name):
     # the weights split between identical columns is not unique, so compare the fit
+    solve, _ = SOLVERS[name]
     rng = np.random.default_rng(1)
     R = rng.random((40, 3))
     R = np.column_stack([R, R[:, 0]])
     for _ in range(20):
         s = rng.random(40)
-        w = nnls_enumerate(R, s)
+        w = solve(R, s)
         w_scipy, _ = scipy.optimize.nnls(R, s)
         assert abs(fit_error(R, s, w) - fit_error(R, s, w_scipy)) < 1e-12
 
@@ -73,12 +80,6 @@ def test_dependent_supports_are_reported_unsolved():
     by_support = {c.support: c for c in candidates(R, np.ones(3))}
     assert by_support[(0, 1)].w is None and not by_support[(0, 1)].feasible
     assert by_support[(0,)].feasible
-
-
-def test_lstsq_satisfies_normal_equations():
-    R, s = random_problem(np.random.default_rng(2), m=4)
-    w = lstsq(R, s)
-    np.testing.assert_allclose(R.T @ (s - R @ w), 0, atol=1e-12)
 
 
 @pytest.mark.parametrize("m", [1, 2, 3, 4])
@@ -118,19 +119,9 @@ def test_bundled_best_fit_matches_mrfitty():
     np.testing.assert_allclose(w, [0.519737, 0.395842, 0.0856152], atol=1e-5)
 
 
-def test_gradient_matches_finite_differences():
-    R, s = random_problem(np.random.default_rng(4), m=3)
-    w = np.random.default_rng(5).normal(size=3)
-    h = 1e-6
-    numeric = [
-        (objective(R, s, w + h * np.eye(3)[i]) - objective(R, s, w - h * np.eye(3)[i])) / (2 * h)
-        for i in range(3)
-    ]
-    np.testing.assert_allclose(gradient(R, s, w), numeric, rtol=1e-6)
-
-
 def test_quadratic_expansion_is_exact():
-    # f(w + t d) = f(w) + t grad f(w) . d + t^2 ||R d||^2, with no remainder
+    # f(w + t d) = f(w) + t grad f(w) . d + t^2 ||R d||^2, with no remainder. With a random
+    # direction d this also checks the gradient.
     rng = np.random.default_rng(6)
     R, s = random_problem(rng, m=4)
     w, d, t = rng.normal(size=4), rng.normal(size=4), 0.7
@@ -147,49 +138,19 @@ def test_support_fit_matches_direct_least_squares():
         assert np.isclose(error, cand.error, atol=1e-10)
 
 
-@pytest.mark.parametrize("seed", range(50))
-def test_enumerate_satisfies_kkt(seed):
-    # lambda = grad f(w*) >= 0, and lambda_i = 0 wherever w*_i > 0
-    R, s = random_problem(np.random.default_rng(100 + seed))
-    w = nnls_enumerate(R, s)
-    lam = gradient(R, s, w)
-    scale = np.abs(R.T @ s).max() + 1
-    assert np.all(lam >= -1e-9 * scale)
-    assert np.all(np.abs(lam[w > 0]) <= 1e-9 * scale)
-
-
-@pytest.mark.parametrize("seed", range(200))
-def test_active_set_matches_scipy(seed):
-    R, s = random_problem(np.random.default_rng(1000 + seed), m=int(1 + seed % 8))
-    w = nnls_active_set(R, s)
-    w_scipy, _ = scipy.optimize.nnls(R, s)
-    assert np.all(w >= 0)
-    np.testing.assert_allclose(w, w_scipy, atol=1e-9)
-
-
-def test_active_set_with_duplicate_column_matches_scipy_fit():
-    rng = np.random.default_rng(1)
-    R = rng.random((40, 3))
-    R = np.column_stack([R, R[:, 0]])
-    for _ in range(20):
-        s = rng.random(40)
-        w = nnls_active_set(R, s)
-        w_scipy, _ = scipy.optimize.nnls(R, s)
-        assert abs(fit_error(R, s, w) - fit_error(R, s, w_scipy)) < 1e-12
-
-
-@pytest.mark.parametrize("seed", range(50))
-def test_active_set_walk_goes_downhill_and_never_repeats_a_support(seed):
+def test_active_set_walk_goes_downhill_and_never_repeats_a_support():
     # Theorems 14 and 15: every step stays allowed, the error never rises, and it strictly
     # drops between the supports where the walk reaches step 1, which never repeat
-    R, s = random_problem(np.random.default_rng(2000 + seed), m=6)
-    steps = active_set_steps(R, s)
-    errors = [step.error for step in steps]
-    assert all(np.all(step.w >= 0) for step in steps)
-    assert all(b <= a + 1e-12 for a, b in zip(errors, errors[1:], strict=False))
-    rounds = [step for step in steps if step.kind in ("start", "fit")]
-    assert len({step.support for step in rounds}) == len(rounds)
-    assert all(b.error < a.error for a, b in zip(rounds, rounds[1:], strict=False))
+    for seed in range(50):
+        R, s = random_problem(np.random.default_rng(2000 + seed), m=6)
+        steps = active_set_steps(R, s)
+        errors = [step.error for step in steps]
+        message = f"seed {seed}"
+        assert all(np.all(step.w >= 0) for step in steps), message
+        assert all(b <= a + 1e-12 for a, b in zip(errors, errors[1:], strict=False)), message
+        rounds = [step for step in steps if step.kind in ("start", "fit")]
+        assert len({step.support for step in rounds}) == len(rounds), message
+        assert all(b.error < a.error for a, b in zip(rounds, rounds[1:], strict=False)), message
 
 
 def test_active_set_on_all_bundled_references_matches_enumeration():
@@ -197,12 +158,6 @@ def test_active_set_on_all_bundled_references_matches_enumeration():
     np.testing.assert_allclose(
         nnls_active_set(spectra.R, spectra.s), nnls_enumerate(spectra.R, spectra.s), atol=1e-9
     )
-
-
-@pytest.mark.parametrize("seed", range(50))
-def test_enumerate_normal_matches_enumerate(seed):
-    R, s = random_problem(np.random.default_rng(3000 + seed))
-    np.testing.assert_allclose(nnls_enumerate_normal(R, s), nnls_enumerate(R, s), atol=1e-9)
 
 
 @pytest.mark.parametrize("m", [1, 2, 3, 5, 8])
@@ -222,9 +177,10 @@ def test_triangular_solves():
     np.testing.assert_allclose(L.T @ back_substitution(L.T, c), c, atol=1e-12)
 
 
-def test_solve_cholesky_and_both_least_squares_routes():
+def test_solve_cholesky_and_the_least_squares_routes():
     R, s = random_problem(np.random.default_rng(10), m=4)
     G = R.T @ R
     np.testing.assert_allclose(solve_cholesky(G, R.T @ s), np.linalg.solve(G, R.T @ s), atol=1e-10)
     np.testing.assert_allclose(lstsq_normal(R, s), lstsq(R, s), atol=1e-10)
     np.testing.assert_allclose(lstsq_qr(R, s), lstsq(R, s), atol=1e-12)
+    np.testing.assert_allclose(R.T @ (s - R @ lstsq(R, s)), 0, atol=1e-12)

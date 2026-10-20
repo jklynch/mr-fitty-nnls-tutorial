@@ -1,28 +1,26 @@
 """The batched and compiled solvers against one SciPy call per fit."""
 
 import numpy as np
-import pytest
+from problems import random_problem
 
 from nnls_tutorial import batched as B
 from nnls_tutorial.data import load_arsenic
 
 
 def awkward_problem(seed, n=60, draws=40):
-    """Random references, a target that wants some negative weights, and random holdouts."""
-    rng = np.random.default_rng(seed)
-    m = int(rng.integers(1, 6))
-    R = rng.random((n, m))
-    s = R @ rng.normal(size=m) + 0.05 * rng.normal(size=n)
+    """A random problem from problems.py, with random holdouts."""
+    R, s = random_problem(np.random.default_rng(seed), n=n)
     train = ~B.holdout_masks(n, draws, blocks=2, block_length=8, seed=seed)
     return R, s, train
 
 
-@pytest.mark.parametrize("seed", range(40))
-def test_batched_and_compiled_match_scipy(seed):
-    R, s, train = awkward_problem(seed)
-    W = B.nnls_scipy_loop(R, s, train)
-    np.testing.assert_allclose(B.batched_nnls(R, s, train), W, atol=1e-9)
-    np.testing.assert_allclose(B.compiled_nnls(R, s, train), W, atol=1e-9)
+def test_batched_and_compiled_match_scipy():
+    for seed in range(40):
+        R, s, train = awkward_problem(seed)
+        W = B.nnls_scipy_loop(R, s, train)
+        message = f"seed {seed}"
+        np.testing.assert_allclose(B.batched_nnls(R, s, train), W, atol=1e-9, err_msg=message)
+        np.testing.assert_allclose(B.compiled_nnls(R, s, train), W, atol=1e-9, err_msg=message)
 
 
 def test_gram_matrices_agree():
