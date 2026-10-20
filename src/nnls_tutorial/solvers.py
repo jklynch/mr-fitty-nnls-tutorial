@@ -229,3 +229,57 @@ def active_set_steps(R, s):
 def nnls_active_set(R, s):
     """NNLS by Lawson and Hanson's active-set method: the last step of active_set_steps."""
     return active_set_steps(R, s)[-1].w
+
+
+def cholesky(G):
+    """The lower-triangular L with G = L L^T, for symmetric positive-definite G.
+
+    Computed column by column, as notebook 4 derives it: each column's diagonal entry first,
+    then the entries below it. Each entry uses only entries of L that are already known.
+    """
+    m = G.shape[0]
+    L = np.zeros_like(G, dtype=float)
+    for j in range(m):
+        # what's left of G_jj after the columns already factored; > 0 when G is positive definite
+        L[j, j] = np.sqrt(G[j, j] - L[j, :j] @ L[j, :j])
+        for i in range(j + 1, m):
+            L[i, j] = (G[i, j] - L[i, :j] @ L[j, :j]) / L[j, j]
+    return L
+
+
+def forward_substitution(L, c):
+    """Solve L y = c for lower-triangular L, first row first."""
+    y = np.zeros(len(c))
+    for i in range(len(c)):
+        y[i] = (c[i] - L[i, :i] @ y[:i]) / L[i, i]
+    return y
+
+
+def back_substitution(U, y):
+    """Solve U z = y for upper-triangular U, last row first."""
+    z = np.zeros(len(y))
+    for i in reversed(range(len(y))):
+        z[i] = (y[i] - U[i, i + 1 :] @ z[i + 1 :]) / U[i, i]
+    return z
+
+
+def solve_cholesky(G, c):
+    """Solve G z = c for symmetric positive-definite G: factor G = L L^T, then two triangular
+    solves, L y = c forward and L^T z = y backward."""
+    L = cholesky(G)
+    return back_substitution(L.T, forward_substitution(L, c))
+
+
+def lstsq_normal(R, s):
+    """Least squares through the normal equations R^T R w = R^T s, solved by Cholesky."""
+    return solve_cholesky(R.T @ R, R.T @ s)
+
+
+def lstsq_qr(R, s):
+    """Least squares through the QR factorization R = Q U, solving U w = Q^T s.
+
+    Q has orthonormal columns and U is upper triangular. (The usual name is QR, but R is
+    already taken.) R^T R is never formed, so its condition number is never squared.
+    """
+    Q, U = np.linalg.qr(R)
+    return back_substitution(U, Q.T @ s)

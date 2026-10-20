@@ -18,7 +18,7 @@
 #
 # *Part 3 of a series on non-negative least squares (NNLS). Previous:
 # [2. Optimality, and an algorithm that tries everything](02_optimality_and_enumeration.ipynb).
-# Next: 4. Cholesky and conditioning (coming).*
+# Next: [4. Cholesky and conditioning](04_numerics_cholesky_conditioning.ipynb).*
 #
 # Notebook 2 found the NNLS answer by brute force: fit every one of the $2^m - 1$ supports and
 # keep the best allowed fit. That's exact, and for three references it's 7 small fits, which
@@ -535,6 +535,6 @@ s3 = R3 @ rng.normal(size=3)
 # - Enumeration still has a place: for **tiny fits, done by the million**, its fixed, decision-free
 #   work is easier to make fast. That's where the series goes next.
 #
-# **Next:** notebook 4 (coming) looks closely at the small systems $G_{PP}\,z = c_P$ that both
+# **Next:** [notebook 4](04_numerics_cholesky_conditioning.ipynb) looks closely at the small systems $G_{PP}\,z = c_P$ that both
 # methods solve: how to solve them with the Cholesky factorization, and how much accuracy is
 # lost when references are nearly alike.

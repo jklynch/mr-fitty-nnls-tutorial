@@ -8,15 +8,21 @@ from nnls_tutorial.data import load_arsenic
 from nnls_tutorial.geometry import project_onto_cone, project_onto_span
 from nnls_tutorial.solvers import (
     active_set_steps,
+    back_substitution,
     candidates,
+    cholesky,
+    forward_substitution,
     gradient,
     lstsq,
+    lstsq_normal,
+    lstsq_qr,
     nnls_active_set,
     nnls_enumerate,
     nnls_enumerate_many,
     nnls_enumerate_normal,
     normal_equations,
     objective,
+    solve_cholesky,
     support_fit,
     support_of,
     supports,
@@ -197,3 +203,28 @@ def test_active_set_on_all_bundled_references_matches_enumeration():
 def test_enumerate_normal_matches_enumerate(seed):
     R, s = random_problem(np.random.default_rng(3000 + seed))
     np.testing.assert_allclose(nnls_enumerate_normal(R, s), nnls_enumerate(R, s), atol=1e-9)
+
+
+@pytest.mark.parametrize("m", [1, 2, 3, 5, 8])
+def test_cholesky_matches_numpy(m):
+    A = np.random.default_rng(m).random((20, m))
+    G = A.T @ A
+    L = cholesky(G)
+    np.testing.assert_allclose(L, np.linalg.cholesky(G), atol=1e-12)
+    np.testing.assert_allclose(L @ L.T, G, atol=1e-12)
+
+
+def test_triangular_solves():
+    rng = np.random.default_rng(9)
+    L = np.tril(rng.random((5, 5))) + 5 * np.eye(5)
+    c = rng.random(5)
+    np.testing.assert_allclose(L @ forward_substitution(L, c), c, atol=1e-12)
+    np.testing.assert_allclose(L.T @ back_substitution(L.T, c), c, atol=1e-12)
+
+
+def test_solve_cholesky_and_both_least_squares_routes():
+    R, s = random_problem(np.random.default_rng(10), m=4)
+    G = R.T @ R
+    np.testing.assert_allclose(solve_cholesky(G, R.T @ s), np.linalg.solve(G, R.T @ s), atol=1e-10)
+    np.testing.assert_allclose(lstsq_normal(R, s), lstsq(R, s), atol=1e-10)
+    np.testing.assert_allclose(lstsq_qr(R, s), lstsq(R, s), atol=1e-12)
