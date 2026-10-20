@@ -1,3 +1,17 @@
+# Targets:
+#   sync            install the locked dependencies into .venv
+#   lab, lab-stop   start JupyterLab in the background, and stop it
+#   lab-settings    open notebooks/*.py as notebooks in this project's JupyterLab (lab runs it)
+#   render          execute notebooks/*.py into rendered/*.ipynb, where they are out of date
+#   test            test-package, then test-notebooks
+#   test-package    pytest on src/nnls_tutorial (tests/)
+#   test-notebooks  render, then execute every rendered notebook under pytest
+#   lint            ruff check and ruff format --check
+#   clean           delete rendered/*.ipynb (they are committed: see below)
+#
+# Variables can be overridden on the command line, as CI does:
+#   make -B test-notebooks CELL_TIMEOUT=60
+
 NOTEBOOKS := $(wildcard notebooks/*.py)
 RENDERED := $(patsubst notebooks/%.py,rendered/%.ipynb,$(NOTEBOOKS))
 
@@ -10,6 +24,9 @@ CELL_TIMEOUT := 10
 # socket path; it must be absolute, because the kernel starts in a different directory from the
 # process that connects to it. The sockets go in Jupyter's runtime directory, which is private
 # to you, and which a fresh machine (such as a CI runner) doesn't have yet.
+# These use `=`, not `:=`, so that uv runs only when a target uses them, not on every make.
+# A Unix socket path can be at most 107 characters: a deeply nested JUPYTER_RUNTIME_DIR makes
+# every kernel fail to start, with an error saying the ipc path is too long.
 JUPYTER_RUNTIME = $(shell d="$$(uv run jupyter --runtime-dir)" && mkdir -p -m 700 "$$d" && echo "$$d")
 KERNEL_IPC = --KernelManager.transport=ipc --KernelManager.ip=$(JUPYTER_RUNTIME)/kernel
 
@@ -52,6 +69,9 @@ lab-settings:
 	mkdir -p "$$(uv run python -c 'import sys; print(sys.prefix)')/share/jupyter/lab/settings"
 	cp jupyter/overrides.json "$$(uv run python -c 'import sys; print(sys.prefix)')/share/jupyter/lab/settings/overrides.json"
 
+# A notebook re-renders when its .py source or any package module is newer than its rendered
+# copy; make -B render re-renders them all, as CI does. Every render changes the outputs (the
+# timings in notebook 5 especially), so it leaves a diff even when no code changed.
 render: $(RENDERED)
 
 rendered/%.ipynb: notebooks/%.py $(wildcard src/nnls_tutorial/*.py)
@@ -64,7 +84,8 @@ test: test-package test-notebooks
 test-package:
 	uv run pytest
 
-# executes the rendered notebooks top to bottom
+# Renders first, so the notebooks are up to date with their .py sources, then executes each
+# rendered notebook top to bottom. A notebook that has to re-render therefore runs twice.
 test-notebooks: render
 	uv run pytest --nbmake --nbmake-timeout=$(CELL_TIMEOUT) rendered/
 
@@ -72,5 +93,8 @@ lint:
 	uv run ruff check src tests notebooks
 	uv run ruff format --check src tests notebooks
 
+# rendered/*.ipynb are committed, because they are what readers without a kernel see on
+# GitHub. Bring them back with make render (new outputs) or git restore rendered/ (the
+# committed ones).
 clean:
 	rm -f rendered/*.ipynb
