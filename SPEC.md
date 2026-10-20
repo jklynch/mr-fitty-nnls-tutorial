@@ -77,8 +77,8 @@ Each notebook is short and focused and imports shared code from the `nnls_tutori
 - **Static fallback for every widget:** each interactive cell also emits a static figure, either
   a snapshot or a small-multiples grid at representative slider values, so the rendered
   notebooks read fully on GitHub, on nbviewer or as HTML without a kernel. Pattern: each widget
-  helper in `nnls_tutorial.spectrum_space` and `nnls_tutorial.weight_space` has a matching
-  `*_static()` that the cell calls first.
+  helper in `nnls_tutorial.spectrum_space`, `nnls_tutorial.weight_space` and
+  `nnls_tutorial.active_set_walk` has a matching `*_static()` that the cell calls first.
 - **Front end:** JupyterLab (`uv run jupyter lab`).
 
 ## 5. Code: the `nnls_tutorial` package
@@ -97,6 +97,7 @@ src/nnls_tutorial/
   plotting.py      shared figure helpers (cones, contours, candidate markers), one style
   spectrum_space.py  notebook 1's figures (spectrum space): widgets + *_static fallbacks
   weight_space.py    notebook 2's figures (weight space): widgets + *_static fallbacks
+  active_set_walk.py notebook 3's figures (the walk in both spaces, costs): widgets + *_static
 ```
 
 ## 6. Data

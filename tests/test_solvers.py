@@ -7,11 +7,14 @@ import scipy.optimize
 from nnls_tutorial.data import load_arsenic
 from nnls_tutorial.geometry import project_onto_cone, project_onto_span
 from nnls_tutorial.solvers import (
+    active_set_steps,
     candidates,
     gradient,
     lstsq,
+    nnls_active_set,
     nnls_enumerate,
     nnls_enumerate_many,
+    nnls_enumerate_normal,
     normal_equations,
     objective,
     support_fit,
@@ -147,3 +150,50 @@ def test_enumerate_satisfies_kkt(seed):
     scale = np.abs(R.T @ s).max() + 1
     assert np.all(lam >= -1e-9 * scale)
     assert np.all(np.abs(lam[w > 0]) <= 1e-9 * scale)
+
+
+@pytest.mark.parametrize("seed", range(200))
+def test_active_set_matches_scipy(seed):
+    R, s = random_problem(np.random.default_rng(1000 + seed), m=int(1 + seed % 8))
+    w = nnls_active_set(R, s)
+    w_scipy, _ = scipy.optimize.nnls(R, s)
+    assert np.all(w >= 0)
+    np.testing.assert_allclose(w, w_scipy, atol=1e-9)
+
+
+def test_active_set_with_duplicate_column_matches_scipy_fit():
+    rng = np.random.default_rng(1)
+    R = rng.random((40, 3))
+    R = np.column_stack([R, R[:, 0]])
+    for _ in range(20):
+        s = rng.random(40)
+        w = nnls_active_set(R, s)
+        w_scipy, _ = scipy.optimize.nnls(R, s)
+        assert abs(fit_error(R, s, w) - fit_error(R, s, w_scipy)) < 1e-12
+
+
+@pytest.mark.parametrize("seed", range(50))
+def test_active_set_walk_goes_downhill_and_never_repeats_a_support(seed):
+    # Theorems 14 and 15: every step stays allowed, the error never rises, and it strictly
+    # drops between the supports where the walk reaches step 1, which never repeat
+    R, s = random_problem(np.random.default_rng(2000 + seed), m=6)
+    steps = active_set_steps(R, s)
+    errors = [step.error for step in steps]
+    assert all(np.all(step.w >= 0) for step in steps)
+    assert all(b <= a + 1e-12 for a, b in zip(errors, errors[1:], strict=False))
+    rounds = [step for step in steps if step.kind in ("start", "fit")]
+    assert len({step.support for step in rounds}) == len(rounds)
+    assert all(b.error < a.error for a, b in zip(rounds, rounds[1:], strict=False))
+
+
+def test_active_set_on_all_bundled_references_matches_enumeration():
+    spectra = load_arsenic()
+    np.testing.assert_allclose(
+        nnls_active_set(spectra.R, spectra.s), nnls_enumerate(spectra.R, spectra.s), atol=1e-9
+    )
+
+
+@pytest.mark.parametrize("seed", range(50))
+def test_enumerate_normal_matches_enumerate(seed):
+    R, s = random_problem(np.random.default_rng(3000 + seed))
+    np.testing.assert_allclose(nnls_enumerate_normal(R, s), nnls_enumerate(R, s), atol=1e-9)

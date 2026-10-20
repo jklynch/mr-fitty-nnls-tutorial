@@ -62,7 +62,7 @@ def weight_axes(ax, center, half_width, ticks=None):
         ax.yaxis.set_major_locator(MaxNLocator(nbins=4, steps=[1, 2, 5, 10]))
 
 
-def _window(points, min_half_width=0.8):
+def window(points, min_half_width=0.8):
     """A square window around the given points, with some room to spare."""
     points = np.asarray(points)
     lo, hi = points.min(axis=0), points.max(axis=0)
@@ -159,7 +159,7 @@ def two_spaces_figure(theta=60, s_angle=-35, s_length=1.2):
     w_hat, w_star = lstsq(R, s), nnls_enumerate(R, s)
     fig, (ax_s, ax_w) = plt.subplots(1, 2, figsize=(12, 5.6))
     _spectrum_panel(ax_s, R, s)
-    center, half_width = _window([np.zeros(2), w_hat, w_star])
+    center, half_width = window([np.zeros(2), w_hat, w_star])
     draw_bowl(ax_w, R, s, center, half_width, highlight=w_star)
     _mark_weights(ax_w, w_hat, w_star)
     weight_axes(ax_w, center, half_width)
@@ -182,7 +182,7 @@ def gradient_figure(theta=60, s_angle=-35, s_length=1.2, n_arrows=9):
     R, s = problem(theta, s_angle, s_length)
     w_hat = lstsq(R, s)
     fig, ax = plt.subplots(figsize=(6.4, 6.0))
-    center, half_width = _window([np.zeros(2), w_hat], min_half_width=1.2)
+    center, half_width = window([np.zeros(2), w_hat], min_half_width=1.2)
     draw_bowl(ax, R, s, center, half_width)
     g = np.linspace(-0.85 * half_width, 0.85 * half_width, n_arrows)
     W1, W2 = np.meshgrid(center[0] + g, center[1] + g)
@@ -223,7 +223,7 @@ def kkt_figure():
     for ax, (key, title) in zip(axes, cases, strict=True):
         R, s = problem(*REGION_EXAMPLES[key])
         w_hat, w_star = lstsq(R, s), nnls_enumerate(R, s)
-        center, half_width = _window([np.zeros(2), w_hat, w_star], min_half_width=1.0)
+        center, half_width = window([np.zeros(2), w_hat, w_star], min_half_width=1.0)
         draw_bowl(ax, R, s, center, half_width, highlight=w_star)
         downhill = -gradient(R, s, w_star)
         size = np.linalg.norm(downhill)
@@ -264,7 +264,7 @@ def candidates_figure(theta=60, s_angle=-35, s_length=1.2, ax=None, with_spectru
         else:
             fig, ax = plt.subplots(figsize=(6, 5.6))
     points = [np.zeros(2)] + [cand.w for cand in cands if cand.w is not None]
-    center, half_width = _window(points, min_half_width=1.0)
+    center, half_width = window(points, min_half_width=1.0)
     draw_bowl(ax, R, s, center, half_width, highlight=w_star)
     for cand in cands:
         winner = np.allclose(cand.w, w_star)

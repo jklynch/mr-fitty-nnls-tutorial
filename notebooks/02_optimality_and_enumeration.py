@@ -17,8 +17,8 @@
 # # 2. Optimality, and an algorithm that tries everything
 #
 # *Part 2 of a series on non-negative least squares (NNLS). Previous:
-# [1. The geometry of least squares](01_least_squares_geometry.ipynb). Next: 3. The active-set
-# method (coming).*
+# [1. The geometry of least squares](01_least_squares_geometry.ipynb). Next:
+# [3. The active-set method](03_active_set_lawson_hanson.ipynb).*
 #
 # Notebook 1 ended on an observation. The NNLS answer always switches some of the references on
 # and the rest off, and on the ones it switches on, it's just the ordinary least-squares fit.
@@ -589,5 +589,5 @@ print(np.linalg.eigvalsh(G))
 #   candidate's error comes almost free (Theorem 12).
 # - The cost is $2^m - 1$ small systems: fine for a few references, hopeless for many.
 #
-# **Next:** notebook 3 (coming) builds the active-set method, which hops from support to support
+# **Next:** [notebook 3](03_active_set_lawson_hanson.ipynb) builds the active-set method, which hops from support to support
 # using the KKT conditions instead of trying them all.
