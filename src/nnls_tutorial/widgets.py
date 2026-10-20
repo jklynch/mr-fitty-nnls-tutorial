@@ -277,9 +277,7 @@ def projection3d_figure(s1=0.9, s2=0.6, s3=0.9, elev=20, azim=-62, show_cone=Tru
     ax.set_zlim(-0.2, 1.6)
     ax.set_box_aspect((3.2, 3.2, 1.8))
     ax.view_init(elev=elev, azim=azim)
-    ax.set_xlabel("$x$")
-    ax.set_ylabel("$y$")
-    ax.set_zlabel("$z$")
+    P.coordinate_axes(ax, zticks=(0, 1))
 
     if show_cone:
         ax2 = fig.add_subplot(1, 2, 2)
@@ -302,6 +300,7 @@ def projection3d_figure(s1=0.9, s2=0.6, s3=0.9, elev=20, azim=-62, show_cone=Tru
             ax2.annotate("$p$", p[:2], xytext=(8, -12), textcoords="offset points", fontsize=12)
             ax2.annotate("$q$", q[:2], xytext=(8, 6), textcoords="offset points", fontsize=12)
         P.square_limits(ax2, 1.8)
+        P.coordinate_axes(ax2)
         d_sp, d_pq, d_sq = (np.sum((u - v) ** 2) for u, v in [(s, p), (p, q), (s, q)])
         ax2.set_title("The plane seen from above")
         ax2.text(
@@ -464,6 +463,7 @@ def regions_figure(theta=60, s_angle=-35, s_length=1.2, ax=None, radius=2.2, n=4
     ax.plot(*s, "o", color=P.INK, ms=5, zorder=6)  # on top: inside the cone, q = s
     ax.annotate("$s$", s, xytext=(7, 5), textcoords="offset points", fontsize=13)
     P.square_limits(ax, radius)
+    P.coordinate_axes(ax)
     ax.grid(False)
     ax.set_title(f"$w^*$ = ({w[0]:.2f}, {w[1]:.2f})", fontsize=11)
     if own_figure:
@@ -541,6 +541,7 @@ def obtuse_angle_figure(theta=60):
         P.square_limits(ax, 2.5)
         ax.set_xlim(-0.6, 2.5)
         ax.set_ylim(-1.3, 1.8)
+        P.coordinate_axes(ax, xticks=(0, 1, 2))
         ax.grid(False)
 
     ax = axes[0]

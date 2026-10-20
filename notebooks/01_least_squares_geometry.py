@@ -79,7 +79,13 @@ BEST_FIT = [
 # best explains the measured spectrum $s$.
 #
 # Each spectrum is a list of absorption values at the same $n$ energies, so each one is a
-# vector in $\mathbb{R}^n$. Put the references side by side as the columns of a matrix
+# vector in $\mathbb{R}^n$. For these samples the absorption was measured by detecting the
+# X-ray *fluorescence* the arsenic atoms give off, which is (very nearly) proportional to how
+# much they absorb. So we'll call the $k$-th coordinate of a spectrum $f_k$, its fluorescence
+# at the $k$-th energy, and label the axes of $\mathbb{R}^n$ as $f_1, \dots, f_n$. (We'll count
+# energies with $k$ and references with $i$, so they don't get mixed up.)
+#
+# Put the references side by side as the columns of a matrix
 # $R = [r_1 \; r_2 \; \cdots \; r_m]$. A mixture with weights $w = (w_1, \dots, w_m)$ is then
 #
 # $$Rw = w_1 r_1 + w_2 r_2 + \cdots + w_m r_m.$$
@@ -145,6 +151,11 @@ print(
 # origin. Your intuition probably says the closest point is straight "below" $s$: drop a
 # perpendicular from $s$ to the plane and see where it lands. Call that point $p$
 # (Figure 1.2).
+#
+# The axes in Figure 1.2 are labeled $f_1, f_2, f_3$, as in Section 1. You can think of $r_1$,
+# $r_2$ and $s$ as tiny spectra, each measured at only three energies, with each axis giving
+# the fluorescence at one of them. The flat figures later on work the same way, with spectra
+# measured at just two energies and axes $f_1$ and $f_2$.
 
 # %%
 P.show(W.projection3d_figure(0.9, 0.6, 0.9, show_cone=False))

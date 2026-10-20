@@ -138,6 +138,21 @@ def arrow3d(ax, start, end, color, label=None, label_offset=0.08, head=True):
         ax.text(*tip, label, color=INK, fontsize=13)
 
 
+def coordinate_axes(ax, xticks=(-1, 0, 1), yticks=(-1, 0, 1), zticks=None):
+    """Label a geometry figure's axes as the coordinates f_1, f_2 (and f_3), with few ticks.
+
+    These axes are positions in the space the vectors live in, not measured quantities, so a
+    handful of ticks is enough to give the scale.
+    """
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    ax.set_xlabel("$f_1$")
+    ax.set_ylabel("$f_2$")
+    if zticks is not None:
+        ax.set_zticks(zticks)
+        ax.set_zlabel("$f_3$")
+
+
 def square_limits(ax, radius):
     """Equal-aspect axes centered on the origin."""
     ax.set_xlim(-radius, radius)
