@@ -1,0 +1,2 @@
+# notebooks/*.py (percent format) are the source of truth; paired .ipynb are working copies
+formats = "notebooks///ipynb,notebooks///py:percent"

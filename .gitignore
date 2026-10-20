@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+# paired working copies; the .py files are committed, executed copies live in rendered/
+notebooks/*.ipynb
