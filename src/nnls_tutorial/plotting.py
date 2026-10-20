@@ -153,6 +153,18 @@ def coordinate_axes(ax, xticks=(-1, 0, 1), yticks=(-1, 0, 1), zticks=None):
         ax.set_zlabel("$f_3$")
 
 
+def wedge_outline(R2, radius, n=60):
+    """Points outlining the sector between two columns in the plane, out to `radius`.
+
+    This is the cone {R w : w >= 0} for two columns, cut off at `radius` so it can be filled.
+    """
+    start = np.arctan2(R2[1, 0], R2[0, 0])
+    stop = np.arctan2(R2[1, 1], R2[0, 1])
+    t = np.linspace(start, stop, n)
+    arc = np.column_stack([radius * np.cos(t), radius * np.sin(t)])
+    return np.vstack([[0.0, 0.0], arc])
+
+
 def square_limits(ax, radius):
     """Equal-aspect axes centered on the origin."""
     ax.set_xlim(-radius, radius)

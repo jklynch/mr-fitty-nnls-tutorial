@@ -10,7 +10,7 @@ and the last notebook builds the fast solver it uses.
 | Notebook | What it covers |
 |---|---|
 | [1. The geometry of least squares](rendered/01_least_squares_geometry.ipynb) | LS as projection onto a subspace; NNLS as projection onto a cone |
-| 2. Optimality and enumeration | *coming* |
+| [2. Optimality and enumeration](rendered/02_optimality_and_enumeration.ipynb) | Weight space, the gradient and the KKT conditions; why trying every support is exact |
 | 3. The active-set method | *coming* |
 | 4. Cholesky and conditioning | *coming* |
 | 5. Many small fits, fast | *coming* |

@@ -1,4 +1,8 @@
-"""The tutorial's figures, each as a static version and an interactive widget.
+"""Notebook 1's figures: the NNLS problem seen in spectrum space.
+
+Spectrum space is where the measured spectrum s and the reference columns r_i live, with
+axes f_1, f_2, ... for the fluorescence at each energy. Each figure comes as a static
+version and an interactive widget.
 
 Every widget `*_widget()` has a static counterpart `*_static()` (snapshots at representative
 settings), so a notebook saved with its outputs reads fully without a running kernel. Both
@@ -225,14 +229,6 @@ def mixtures_widget(spectra):
 PLANE_COLUMNS = np.column_stack([[1.0, 0.0, 0.0], [0.5, np.sqrt(3) / 2, 0.0]])  # 60° apart
 
 
-def _wedge_outline(R2, radius, n=60):
-    """Points outlining the sector between two unit columns in the plane, out to `radius`."""
-    start = np.degrees(np.arctan2(R2[1, 0], R2[0, 0]))
-    stop = np.degrees(np.arctan2(R2[1, 1], R2[0, 1]))
-    arc = [radius * unit(t) for t in np.linspace(start, stop, n)]
-    return np.array([[0.0, 0.0]] + arc)
-
-
 def projection3d_figure(s1=0.9, s2=0.6, s3=0.9, elev=20, azim=-62, show_cone=True):
     """s in R^3, the plane spanned by two columns, and the closest points on plane and wedge."""
     R, s = PLANE_COLUMNS, np.array([s1, s2, s3])
@@ -249,7 +245,7 @@ def projection3d_figure(s1=0.9, s2=0.6, s3=0.9, elev=20, azim=-62, show_cone=Tru
     X, Y = np.meshgrid(grid, grid)
     ax.plot_surface(X, Y, np.zeros_like(X), color=P.INK_MUTED, alpha=0.12, linewidth=0)
     if show_cone:
-        wedge = _wedge_outline(R[:2], 1.8)
+        wedge = P.wedge_outline(R[:2], 1.8)
         ax.add_collection3d(
             _poly3d(np.column_stack([wedge, np.zeros(len(wedge))]), P.REGION_FILLS[(0, 1)])
         )
@@ -283,7 +279,7 @@ def projection3d_figure(s1=0.9, s2=0.6, s3=0.9, elev=20, azim=-62, show_cone=Tru
         ax2 = fig.add_subplot(1, 2, 2)
         ax2.add_patch(
             Polygon(
-                _wedge_outline(R[:2], 6),
+                P.wedge_outline(R[:2], 6),
                 facecolor=P.REGION_FILLS[(0, 1)],
                 edgecolor="none",
                 zorder=0,
@@ -531,7 +527,7 @@ def obtuse_angle_figure(theta=60):
     for ax in axes:
         ax.add_patch(
             Polygon(
-                _wedge_outline(R, 6), facecolor=P.REGION_FILLS[(0, 1)], edgecolor="none", zorder=0
+                P.wedge_outline(R, 6), facecolor=P.REGION_FILLS[(0, 1)], edgecolor="none", zorder=0
             )
         )
         for i in range(2):

@@ -101,3 +101,33 @@ def nnls_enumerate_many(R, S):
 def support_of(w, tol=1e-12):
     """The positions of the weights that are switched on."""
     return tuple(int(i) for i in np.flatnonzero(w > tol))
+
+
+def objective(R, s, w):
+    """f(w) = ||R w - s||^2, the quantity least squares and NNLS minimize."""
+    return float(np.sum((R @ w - s) ** 2))
+
+
+def gradient(R, s, w):
+    """The gradient of f(w) = ||R w - s||^2, which is 2 R^T (R w - s) = -2 R^T e."""
+    return 2 * R.T @ (R @ w - s)
+
+
+def normal_equations(R, s):
+    """(G, c, ss) = (R^T R, R^T s, s^T s): everything f depends on, in m x m numbers.
+
+    f(w) = w^T G w - 2 c^T w + ss, so once these are computed, no n-long vector is needed
+    again: every candidate's weights and error come from G, c and ss alone.
+    """
+    return R.T @ R, R.T @ s, float(s @ s)
+
+
+def support_fit(G, c, ss, support):
+    """(z, error): least squares on the columns in `support`, from the normal equations alone.
+
+    z solves G_PP z = c_P, and the error uses the shortcut ||R_P z - s||^2 = ss - z . c_P,
+    which holds at that z (notebook 2 proves it). The support's columns must be independent.
+    """
+    P = list(support)
+    z = np.linalg.solve(G[np.ix_(P, P)], c[P])
+    return z, ss - z @ c[P]
