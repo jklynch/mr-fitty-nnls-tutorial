@@ -13,7 +13,7 @@ and the last notebook builds the fast solver it uses.
 | [2. Optimality and enumeration](rendered/02_optimality_and_enumeration.ipynb) | Weight space, the gradient and the KKT conditions; why trying every support is exact |
 | [3. The active-set method](rendered/03_active_set_lawson_hanson.ipynb) | Lawson–Hanson's walk from support to support, why it stops at the answer, and what it costs against enumeration |
 | [4. Cholesky and conditioning](rendered/04_numerics_cholesky_conditioning.ipynb) | Floating point, condition numbers and why $R^\top R$ squares them; Cholesky derived entry by entry; one check that covers every support |
-| 5. Many small fits, fast | *coming* |
+| [5. Many small fits, fast](rendered/05_many_small_fits_fast.ipynb) | Cross-validation's hundreds of thousands of fits: a SciPy loop, batched NumPy, then compiled Numba, timed live and checked against SciPy |
 
 The links above go to executed copies with every figure in place. To run them yourself, with
 the interactive widgets:

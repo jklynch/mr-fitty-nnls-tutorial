@@ -17,8 +17,8 @@
 # # 4. Solving the small systems: Cholesky and conditioning
 #
 # *Part 4 of a series on non-negative least squares (NNLS). Previous:
-# [3. The active-set method](03_active_set_lawson_hanson.ipynb). Next: 5. Many small fits, fast
-# (coming).*
+# [3. The active-set method](03_active_set_lawson_hanson.ipynb). Next:
+# [5. Many small fits, fast](05_many_small_fits_fast.ipynb).*
 #
 # Both NNLS algorithms so far come down to the same small job, done many times: solve
 #
@@ -564,6 +564,6 @@ R_dup = np.column_stack([R_dup, R_dup[:, 1]])  # r_4 is a copy of r_2
 #   $\kappa(G) \approx 1.2 \times 10^5$: about 4 digits lost through the normal equations
 #   against about 1 through QR, comfortably inside MrFitty's limit.
 #
-# **Next:** notebook 5 (coming) puts the pieces together into MrFitty's fast solver: every
-# support, every fit, Cholesky written out by hand, batched in NumPy and then compiled with
-# Numba.
+# **Next:** [notebook 5](05_many_small_fits_fast.ipynb) puts the pieces together into MrFitty's fast
+# solver: every support, every fit, Cholesky written out by hand, batched in NumPy and then compiled
+# with Numba.
