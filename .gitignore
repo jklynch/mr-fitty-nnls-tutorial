@@ -6,3 +6,6 @@ __pycache__/
 .ipynb_checkpoints/
 # paired working copies; the .py files are committed, executed copies live in rendered/
 notebooks/*.ipynb
+# background JupyterLab started by make lab
+.jupyter-lab.log
+.jupyter-lab.pid
