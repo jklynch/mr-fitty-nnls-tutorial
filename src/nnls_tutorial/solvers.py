@@ -131,3 +131,101 @@ def support_fit(G, c, ss, support):
     P = list(support)
     z = np.linalg.solve(G[np.ix_(P, P)], c[P])
     return z, ss - z @ c[P]
+
+
+def nnls_enumerate_normal(R, s):
+    """nnls_enumerate written with the normal equations, as notebook 2 builds it.
+
+    The same algorithm as notebook 2's nnls_by_enumeration: every support is solved from G, c and
+    s.s alone. Notebook 3 times it against the active-set method.
+    """
+    G, c, ss = normal_equations(R, s)
+    m = len(c)
+    best_w, best_error = np.zeros(m), ss
+    for support in supports(m):
+        P = list(support)
+        if np.linalg.matrix_rank(G[np.ix_(P, P)]) < len(P):
+            continue
+        z, error = support_fit(G, c, ss, support)
+        if np.all(z >= 0) and error < best_error:
+            best_w, best_error = np.zeros(m), error
+            best_w[P] = z
+    return best_w
+
+
+@dataclass
+class Step:
+    """One step of the active-set method, recorded so that a run can be replayed and drawn."""
+
+    kind: str  # "start", "add", "fit", "backtrack" or "stop"
+    w: np.ndarray  # the weights after this step
+    support: tuple  # the switched-on positions P after this step, in increasing order
+    changed: tuple  # the position added ("add") or the positions dropped ("backtrack")
+    target: np.ndarray  # z, the least-squares fit on P that this step aimed at, or None
+    gradient: np.ndarray  # lambda = grad f(w), at the weights after this step
+    error: float  # f(w), at the weights after this step
+
+
+def active_set_steps(R, s):
+    """Lawson and Hanson's active-set method for NNLS, recorded one step at a time.
+
+    Start at w = 0 with nothing switched on. Then repeat:
+      - stop if no switched-off weight has a negative slope lambda_i (the KKT conditions hold);
+      - otherwise switch on the weight whose slope is most negative ("add"), and
+      - fit by least squares on the switched-on weights. If that fit is allowed, move to it
+        ("fit"). If not, move toward it only as far as the quadrant allows, switch off the
+        weights that reach zero, and fit again ("backtrack").
+    Like notebook 2's enumeration, every fit solves G_PP z = c_P. Notebook 3 proves that the
+    method stops, and at the NNLS answer. The last step's w is the answer.
+    """
+    G, c, ss = normal_equations(R, s)
+    m = len(c)
+    # slopes this close to zero are zero, up to rounding
+    tol = 10 * m * np.finfo(float).eps * max(np.abs(G).max(), np.abs(c).max(), 1e-300)
+    w = np.zeros(m)
+    P = []
+    steps = []
+
+    def record(kind, changed=(), target=None):
+        lam = 2 * (G @ w - c)
+        steps.append(
+            Step(kind, w.copy(), tuple(sorted(P)), changed, target, lam, objective(R, s, w))
+        )
+        return lam
+
+    lam = record("start")
+    for _ in range(3 * m + 10):
+        off = [i for i in range(m) if i not in P]
+        if not off or min(lam[i] for i in off) >= -tol:
+            record("stop")
+            return steps
+        t = min(off, key=lambda i: lam[i])  # the steepest way down that the fence allows
+        P.append(t)
+        record("add", (t,))
+        while True:
+            z = np.zeros(m)
+            z[P] = support_fit(G, c, ss, P)[0]
+            if z[t] <= 0 and np.all(w[P] == 0):
+                # Theorem 13 says z_t > 0; only rounding can do this, when lambda_t is zero to
+                # working precision. Treat it as zero.
+                P.remove(t)
+                record("stop")
+                return steps
+            if np.all(z[P] > 0):
+                w = z
+                lam = record("fit", target=z)
+                break
+            # move from w toward z until the first weight reaches zero, and switch it off
+            blocking = [i for i in P if z[i] <= 0]
+            alpha, first = min((w[i] / (w[i] - z[i]), i) for i in blocking)
+            w = w + alpha * (z - w)
+            dropped = tuple(i for i in P if i == first or w[i] <= tol)
+            w[list(dropped)] = 0
+            P = [i for i in P if i not in dropped]
+            lam = record("backtrack", dropped, target=z)
+    raise RuntimeError("the active-set method did not stop; the problem may be badly conditioned")
+
+
+def nnls_active_set(R, s):
+    """NNLS by Lawson and Hanson's active-set method: the last step of active_set_steps."""
+    return active_set_steps(R, s)[-1].w
